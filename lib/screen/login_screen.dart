@@ -60,7 +60,11 @@ class _LoginScreenState extends State<LoginScreen> {
               child: TextField(
                 controller: _emailController,
                 decoration: InputDecoration(
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.green
+                      )
+                    ),
                     labelText: "Email",
                     hintText: "Email here"),
                 keyboardType: TextInputType.emailAddress,
@@ -145,10 +149,14 @@ class _LoginScreenState extends State<LoginScreen> {
     String password = _passwordController.text;
 
     if (email.isNotEmpty && password.isNotEmpty) {
-      _auth.signInWithEmailAndPassword(email: email,
-          password: password).then(
+      _auth.signInWithEmailAndPassword(email: email, password: password).then(
         (user) {
 
+          _db.collection("users").document(user.user.uid).setData({
+            "email": email,
+            "lastseen": DateTime.now(),
+            "signin_method": user.user.providerId,
+          });
 
           showDialog(
             context: context,
@@ -221,49 +229,51 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     }
   }
-  void _signInUsingGoogle() async{
 
-   try{
-     final GoogleSignInAccount googleUser = await _googleSignIn.signIn();
-     final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+  void _signInUsingGoogle() async {
+    try {
+      final GoogleSignInAccount googleUser = await _googleSignIn.signIn();
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
-     final AuthCredential credential = GoogleAuthProvider.getCredential(
-       accessToken: googleAuth.accessToken,
-       idToken: googleAuth.idToken,
+      final AuthCredential credential = GoogleAuthProvider.getCredential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      final FirebaseUser user =
+          (await _auth.signInWithCredential(credential)).user;
 
-     );
-     final FirebaseUser user =
-         (await _auth.signInWithCredential(credential)).user;
+      print("signed in" + user.displayName);
 
-     print("signed in" + user.displayName);
-
-if(user != null){
-
-}
-
-
-   }catch(e){
-
-     showDialog(
-       context: context,
-       builder: (ctx) {
-         return AlertDialog(
-           shape: RoundedRectangleBorder(
-               borderRadius: BorderRadius.circular(16)),
-           title: Text("Error"),
-           content: Text("${e.message}"),
-           actions: [
-             FlatButton(
-               onPressed: () {
-                 Navigator.of(ctx).pop();
-               },
-               child: Text("cancel"),
-             ),
-           ],
-         );
-       },
-     );
-
-   }
+      if (user != null) {
+        _db.collection("users").document(user.uid).setData({
+          "displayName": user.displayName,
+          "email": user.email,
+          "photoUrl": user.photoUrl,
+          "lastseen": DateTime.now(),
+          "signin_method": user.providerId,
+        });
+      }
+    } catch (e) {
+      showDialog(
+        context: context,
+        builder: (ctx) {
+          return AlertDialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text("Error"),
+            content: Text("${e.message}"),
+            actions: [
+              FlatButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                },
+                child: Text("cancel"),
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
 }
