@@ -35,21 +35,20 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: HomeScreen(
+
+      ),
       body: StreamBuilder(
         stream: _auth.onAuthStateChanged,
         builder: (ctx, AsyncSnapshot<FirebaseUser> snapshot) {
           if (snapshot.hasData) {
             FirebaseUser user = snapshot.data;
-
             if (user != null) {
               return HomeScreen();
-
             } else {
-              return  LoginScreen();
-
+              return LoginScreen();
             }
           }
-
           return LoginScreen();
         },
       ),
